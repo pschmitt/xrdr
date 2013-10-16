@@ -1,0 +1,179 @@
+#!/bin/bash
+# Author: Philipp Schmitt
+# Version: 1.5
+
+CONFIG_FILE="/etc/conf.d/xrdr.conf"
+USER_CONFIG_FILE="$HOME/.config/xrdr.conf"
+
+#if [[ "$(whoami)" != "$USER" ]]; then
+#    exec su $USER -c "$0 $* 2> /tmp/xrdr.log" 
+#fi
+
+[[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || ( [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE )
+
+
+function check_screen_variables() {
+    [[ -n "$PRIMARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && local first_screen_ok=0
+    [[ -n "$SECONDARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$SECONDARY_SCREEN" ]] && local second_screen_ok=0
+    [[ -n "$TERTIARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$TERTIARY_SCREEN" ]] && local third_screen_ok=0
+    case ${#SCREENS[@]} in
+        3)
+            [[ -n "$first_screen_ok" ]] && [[ -n "$second_screen_ok" ]] && [[ -n "$third_screen_ok" ]]
+            ;;
+        2)
+            [[ -n "$first_screen_ok" ]] && [[ -n "$second_screen_ok" ]]
+            ;;
+        1)
+            [[ -n "$first_screen_ok" ]]
+            ;;
+    esac
+}
+
+function guess_screens() {
+    PRIMARY_SCREEN=${SCREENS[0]}
+    SECONDARY_SCREEN=${SCREENS[1]} 
+    TERTIARY_SCREEN=${SCREENS[2]}
+}
+
+function count() {
+    echo ${#SCREENS[@]}
+    exit 0
+}
+
+function save_conf() {
+    echo 'PRIMARY_SCREEN="'$PRIMARY_SCREEN'"' > $USER_CONFIG_FILE
+    echo 'SECONDARY_SCREEN="'$SECONDARY_SCREEN'"' >> $USER_CONFIG_FILE
+    echo 'TERTIARY_SCREEN="'$TERTIARY_SCREEN'"' >> $USER_CONFIG_FILE
+}
+
+function copy() {
+    disconnect
+    xrandr --output $SECONDARY_SCREEN --auto \
+           --output $PRIMARY_SCREEN --same-as $SECONDARY_SCREEN --primary 
+}
+
+function extend() {
+    disconnect
+    case ${#SCREENS[@]} in
+        2)
+            xrandr --output $PRIMARY_SCREEN --primary --auto \
+                   --output $SECONDARY_SCREEN --auto --right-of $PRIMARY_SCREEN 
+            ;;
+        3)
+            xrandr --output $PRIMARY_SCREEN --primary --auto \
+                   --output $SECONDARY_SCREEN --auto --left-of $PRIMARY_SCREEN \
+                   --output $TERTIARY_SCREEN --auto --right-of $PRIMARY_SCREEN
+            ;;
+    esac
+}
+
+function primary_only() {
+    disconnect
+    case ${#SCREENS[@]} in
+        3)
+            xrandr --output $TERTIARY_SCREEN --off
+            ;&
+        2)
+            xrandr --output $SECONDARY_SCREEN --off
+            ;;
+    esac
+    xrandr --output $PRIMARY_SCREEN --auto --primary
+}
+
+function secondary_only() {
+    [[ -n "$SECONDARY_SCREEN" ]] || exit 1
+    disconnect
+    xrandr --output $PRIMARY_SCREEN --off \
+           --output $TERTIARY_SCREEN --off \
+           --output $SECONDARY_SCREEN --auto --primary 
+}
+
+function tertiary_only() {
+    [[ -n "$TERTIARY_SCREEN" ]] || exit 1
+    disconnect
+    xrandr --output $PRIMARY_SCREEN --off \
+           --output $SECONDARY_SCREEN --off \
+           --output $TERTIARY_SCREEN --auto --primary
+}
+
+function disconnect() {
+    xrandr --auto
+}
+
+function toggle() {
+    [[ ${#SCREENS[@]} -gt 1 ]] && primary_only || extend 
+}
+
+function auto() {
+    [[ ${#SCREENS[@]} -gt 1 ]] && extend || primary_only
+}
+
+while getopts 'd:x:' opt ; do
+    case $opt in
+         d)
+            export DISPLAY="$OPTARG"
+            ;;
+        x)
+            export XAUTHORITY="$OPTARG"
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+            ;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+
+[[ -z "$DISPLAY" ]] && export DISPLAY=:0
+[[ -z "$XAUTHORITY" ]] && export XAUTHORITY=$HOME/.Xauthority
+
+SCREENS=($(xrandr | grep " connected" | awk '{ print $1 }' | tr '\n' ' ' ))
+
+check_screen_variables || guess_screens
+save_conf
+
+case "$1" in
+    count|c)
+        count
+        ;;
+    primary|p)
+        primary_only
+        ;;
+    extend|e)
+        extend
+        ;;
+    copy|cp)
+        copy
+        ;;
+    secondary|s)
+        secondary_only
+        ;;
+    tertiary|ter)
+        tertiary_only
+        ;;
+    toggle|t)
+        toggle
+        ;;
+    debug|d)
+        ;;
+    *)
+        auto
+        ;;
+esac
+
+#lbar_id=$(xwininfo -name 'xmonad_lbar' | grep 'Window id' | awk '{ print $4 }')
+#rbar_id=$(xwininfo -name 'xmonad_rbar' | grep 'Window id' | awk '{ print $4 }')
+
+#[[ -n "$lbar_id" ]] && xkill -id $lbar_id
+#[[ -n "$rbar_id" ]] && xkill -id $rbar_id
+
+xmonad --restart 
+sleep 2 && nitrogen --restore 
+
+exit 0
+
