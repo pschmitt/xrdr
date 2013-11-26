@@ -1,16 +1,18 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 1.5
+# Version: 2.0
 
-CONFIG_FILE="/etc/conf.d/xrdr.conf"
-USER_CONFIG_FILE="$HOME/.config/xrdr.conf"
-
-#if [[ "$(whoami)" != "$USER" ]]; then
-#    exec su $USER -c "$0 $* 2> /tmp/xrdr.log" 
-#fi
+CONFIG_FILE="/etc/conf.d/xrdr/xrdr.conf"
+USER_CONFIG_FILE="$HOME/.config/xrdr/xrdr.conf"
+HOOK_FILE="/etc/conf.d/xrdr/xrdr.hook"
+USER_HOOK_FILE="$HOME/.config/xrdr/xrdr.hook"
 
 [[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || ( [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE )
-
+if [[ -r $USER_HOOK_FILE ]]; then
+    HOOK=$USER_HOOK_FILE
+elif [[ -r $HOOK_FILE ]]; then
+    HOOK=$HOOK_FILE
+fi
 
 function check_screen_variables() {
     [[ -n "$PRIMARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && local first_screen_ok=0
@@ -41,6 +43,7 @@ function count() {
 }
 
 function save_conf() {
+    mkdir -p $(dirname $USER_CONFIG_FILE)
     echo 'PRIMARY_SCREEN="'$PRIMARY_SCREEN'"' > $USER_CONFIG_FILE
     echo 'SECONDARY_SCREEN="'$SECONDARY_SCREEN'"' >> $USER_CONFIG_FILE
     echo 'TERTIARY_SCREEN="'$TERTIARY_SCREEN'"' >> $USER_CONFIG_FILE
@@ -108,6 +111,10 @@ function auto() {
     [[ ${#SCREENS[@]} -gt 1 ]] && extend || primary_only
 }
 
+function hook() {
+    [[ -n $HOOK ]] && sh $HOOK
+}
+
 while getopts 'd:x:' opt ; do
     case $opt in
          d)
@@ -166,14 +173,4 @@ case "$1" in
         ;;
 esac
 
-#lbar_id=$(xwininfo -name 'xmonad_lbar' | grep 'Window id' | awk '{ print $4 }')
-#rbar_id=$(xwininfo -name 'xmonad_rbar' | grep 'Window id' | awk '{ print $4 }')
-
-#[[ -n "$lbar_id" ]] && xkill -id $lbar_id
-#[[ -n "$rbar_id" ]] && xkill -id $rbar_id
-
-xmonad --restart 
-sleep 2 && nitrogen --restore 
-
-exit 0
-
+hook
