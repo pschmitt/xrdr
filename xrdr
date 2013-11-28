@@ -3,7 +3,7 @@
 # Version: 2.1
 # Dependencies: dzen2
 
-CONFIG_FILE="/etc/conf.d/xrdr/xrdr.conf"
+CONFIG_FILE="/etc/xrdr.conf"
 USER_CONFIG_FILE="$HOME/.config/xrdr/xrdr.conf"
 HOOK_FILE="/etc/conf.d/xrdr/xrdr.hook"
 USER_HOOK_FILE="$HOME/.config/xrdr/xrdr.hook"
