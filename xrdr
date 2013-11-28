@@ -33,13 +33,26 @@ function check_screen_variables() {
 
 function guess_screens() {
     PRIMARY_SCREEN=${SCREENS[0]}
-    SECONDARY_SCREEN=${SCREENS[1]} 
+    SECONDARY_SCREEN=${SCREENS[1]}
     TERTIARY_SCREEN=${SCREENS[2]}
 }
 
 function count() {
     echo ${#SCREENS[@]}
     exit 0
+}
+
+function get_width() {
+    echo TODO
+}
+
+function get_height() {
+    echo TODO
+}
+
+function is_vertical() {
+    local vert=$(xrandr | grep ${SCREENS[$1]} | awk '{ print $4}')
+    return $([[ $vert == "right" || $ver = "left" ]])
 }
 
 function save_conf() {
@@ -52,7 +65,7 @@ function save_conf() {
 function copy() {
     disconnect
     xrandr --output $SECONDARY_SCREEN --auto \
-           --output $PRIMARY_SCREEN --same-as $SECONDARY_SCREEN --primary 
+           --output $PRIMARY_SCREEN --same-as $SECONDARY_SCREEN --primary
 }
 
 function extend() {
@@ -60,7 +73,7 @@ function extend() {
     case ${#SCREENS[@]} in
         2)
             xrandr --output $PRIMARY_SCREEN --primary --auto \
-                   --output $SECONDARY_SCREEN --auto --right-of $PRIMARY_SCREEN 
+                   --output $SECONDARY_SCREEN --auto --right-of $PRIMARY_SCREEN
             ;;
         3)
             xrandr --output $PRIMARY_SCREEN --primary --auto \
@@ -88,7 +101,7 @@ function secondary_only() {
     disconnect
     xrandr --output $PRIMARY_SCREEN --off \
            --output $TERTIARY_SCREEN --off \
-           --output $SECONDARY_SCREEN --auto --primary 
+           --output $SECONDARY_SCREEN --auto --primary
 }
 
 function tertiary_only() {
@@ -104,7 +117,7 @@ function disconnect() {
 }
 
 function toggle() {
-    [[ ${#SCREENS[@]} -gt 1 ]] && primary_only || extend 
+    [[ ${#SCREENS[@]} -gt 1 ]] && primary_only || extend
 }
 
 function auto() {
@@ -166,7 +179,8 @@ case "$1" in
     toggle|t)
         toggle
         ;;
-    debug|d)
+    vertical|v)
+        [[ -n $2 ]] && exit $(is_vertical $(( $2 - 1 ))) || exit 1
         ;;
     *)
         auto
