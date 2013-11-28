@@ -2,11 +2,12 @@
 
 ## Description
 
-Simple Xrandr wrapper written in Bash. Supports up to 3 screens (for now).
+Simple XRandR wrapper written in Bash. Supports up to 3 screens (for now).
 
 ## Dependencies
-* xrandr
-* dzen2 (for identifying screens)
+
+* [XRandR](http://www.x.org/wiki/Projects/XRandR/)
+* [dzen2](https://github.com/robm/dzen) (for identifying screens)
 
 ## Installation
 
