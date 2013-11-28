@@ -38,7 +38,7 @@ wget https://raw.github.com/pschmitt/xrdr/master/xrdr
 
 ### Hooks
 
-If you want to automatically execute a script after display adjustement, create `$HOME/xrdr/xrdr.hook`. Here's mine:
+If you want to automatically execute a script after display adjustement, create `$HOME/.config/xrdr/xrdr.hook`. Here's mine:
 
 ```
 xmonad --restart 
