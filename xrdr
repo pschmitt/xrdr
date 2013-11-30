@@ -15,7 +15,7 @@ elif [[ -r $HOOK_FILE ]]; then
     HOOK=$HOOK_FILE
 fi
 
-function check_screen_variables() {
+function _check_screen_variables() {
     [[ -n "$PRIMARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && local first_screen_ok=0
     [[ -n "$SECONDARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$SECONDARY_SCREEN" ]] && local second_screen_ok=0
     [[ -n "$TERTIARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$TERTIARY_SCREEN" ]] && local third_screen_ok=0
@@ -36,7 +36,17 @@ function check_display_input() {
     [[ $1 -ge ${#SCREENS[@]} ]] && exit 1 || return $(( $1 - 1 ))
 }
 
-function guess_screens() {
+function _check_rotation() {
+    [[ $1 == "left" ]] \
+    || \
+    [[ $1 == "right" ]] \
+    || \
+    [[ $1 == "normal" ]] \
+    || \
+    [[ $1 == "inverted" ]]
+}
+
+function _guess_screens() {
     PRIMARY_SCREEN=${SCREENS[0]}
     SECONDARY_SCREEN=${SCREENS[1]}
     TERTIARY_SCREEN=${SCREENS[2]}
@@ -59,33 +69,33 @@ function identify() {
 
 # This function returns ${XRES}x${YRES}+${XPOS}+${YPOS}
 function _res() {
-    if [[ $1 -ge ${#SCREENS[@]} ]]; then 
-        exit 1 
+    if [[ $1 -ge ${#SCREENS[@]} ]]; then
+        exit 1
     fi
-    xrandr | grep ${SCREENS[$1]} | sed -n 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/p' | sed 's/x/ /g;s/+/ /g' 
+    xrandr | grep ${SCREENS[$1]} | sed -n 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/p' | sed 's/x/ /g;s/+/ /g'
 }
 
 function resolution() {
-    local x_res y_res 
+    local x_res y_res
     read x_res y_res _ _ <<< $(_res $1)
     echo $x_res - $y_res
 }
 
 function width() {
-    _res $1 | awk '{ print $1 }' 
+    _res $1 | awk '{ print $1 }'
 }
 
 function height() {
-    _res $1 | awk '{ print $2 }' 
+    _res $1 | awk '{ print $2 }'
 }
 
 function is_vertical() {
     # TODO awk '{ print $4 }' will only work if $1 != primary screen
     local vert=$(xrandr | grep ${SCREENS[$1]} | awk '{ print $4}')
-    return $([[ $vert == "right" || $ver = "left" ]])
+    exit $([[ $vert == "right" || $vert == "left" ]])
 }
 
-function save_conf() {
+function _save_conf() {
     mkdir -p $(dirname $USER_CONFIG_FILE)
     echo 'PRIMARY_SCREEN="'$PRIMARY_SCREEN'"' > $USER_CONFIG_FILE
     echo 'SECONDARY_SCREEN="'$SECONDARY_SCREEN'"' >> $USER_CONFIG_FILE
@@ -142,6 +152,10 @@ function tertiary_only() {
            --output $TERTIARY_SCREEN --auto --primary
 }
 
+function rotate() {
+    xrandr --output ${SCREENS[$1]} --rotate $2
+}
+
 function disconnect() {
     xrandr --auto
 }
@@ -184,8 +198,8 @@ shift $(($OPTIND - 1))
 
 SCREENS=($(xrandr | grep ' connected' | awk '{ print $1 }' | tr '\n' ' ' ))
 
-check_screen_variables || guess_screens
-save_conf
+_check_screen_variables || _guess_screens
+_save_conf
 
 case "$1" in
     count|c)
@@ -209,24 +223,47 @@ case "$1" in
     toggle|t)
         toggle
         ;;
+    rotate|r)
+        action=rot
+        ;;
     identify|i)
         identify
         ;;
     res|r)
-        [[ -n $2 ]] && { resolution $(( $2 - 1 )); exit 0; } || exit 1
+        action=r
         ;;
     height|h)
-        [[ -n $2 ]] && { height $(( $2 - 1 )); exit 0; } || exit 1
+        action=h
         ;;
     width|w)
-        [[ -n $2 ]] && { width $(( $2 - 1 )); exit 0; } || exit 1
+        action=w
         ;;
     vertical|v)
-        [[ -n $2 ]] && exit $(is_vertical $(( $2 - 1 ))) || exit 1
+        action=v
         ;;
     *)
         auto
         ;;
 esac
 
-hook
+[[ -n $action ]] && {
+    [[ -n $2 ]] && {
+        [[ $2 -gt ${#SCREENS[@]} || $2 -lt 0 ]] && {
+            echo "Invalid index"
+            exit 1
+        } || {
+            d=$(( $2 - 1 ))
+        }
+    }
+    case $action in
+        rot)
+        _check_rotation $3 && {
+            rotate $d $3
+        } || exit 1
+        ;;
+        r) resolution $d  ;;
+        w) width $d       ;;
+        h) height $d      ;;
+        v) is_vertical $d ;;
+    esac
+} || hook
