@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.1.1
+# Version: 2.2.0
 # Dependencies: xrandr awk sed dzen2
 
 CONFIG_FILE='/etc/xrdr.conf'
@@ -14,6 +14,52 @@ if [[ -r $USER_HOOK_FILE ]]; then
 elif [[ -r $HOOK_FILE ]]; then
     HOOK=$HOOK_FILE
 fi
+
+function parse_config() {
+    [[ -r $1 ]] || { echo "File not readable"; exit 1; }
+
+    local valid_config="$(sed '/^#\|^$/d;s/|//g;s/#.*//' $1)"
+    local rows=$(wc -l <<< "$valid_config")
+    local row=0 row_content desired_screens=0
+
+    for row in $(seq $rows); do
+        row_content=$(sed -n ${row}p <<< "$valid_config")
+        eval "local config_${row}=( $row_content )"
+        eval "let desired_screens=desired_screens+\${#config_$row[@]}"
+        eval "local config[$row]=config_${row}"
+    done
+
+    [[ $desired_screens -gt ${#SCREENS[@]} ]] && { echo "There aren't that many screens attached"; exit 1; }
+
+    local config_row _screen screen screen_index xrandr_cmd="xrandr --output" previous_screen
+    for config_row in $(seq ${#config[@]}); do
+        eval "row_content=(\${config_$config_row[*]})"
+        for _screen in "${row_content[@]}"; do
+            echo SCREEN: $_screen
+            screen_index=$(sed 's/[^0-9]*//g' <<< "$_screen")
+            screen_attributes=$(sed 's/[0-9]*//g' <<< "$_screen")
+            screen=${SCREENS[$(( $screen_index - 1 ))]}
+            xrandr_cmd="$xrandr_cmd $screen --auto"
+            case $screen_attributes in
+                r)  xrandr_cmd="${xrandr_cmd} --rotate right"    ;;
+                l)  xrandr_cmd="${xrandr_cmd} --rotate left"     ;;
+                i)  xrandr_cmd="${xrandr_cmd} --rotate inverted" ;;
+                n)  xrandr_cmd="${xrandr_cmd} --rotate normal"   ;;
+                \*) xrandr_cmd="$xrandr_cmd --primary"           ;;
+            esac
+            if [[ $_screen != ${row_content[0]} ]]; then
+                xrandr_cmd="${xrandr_cmd} --right-of $previous_screen"
+            fi
+            if [[ $_screen != ${row_content[${#row_content[@]} - 1]} ]]; then
+                xrandr_cmd="${xrandr_cmd} --output"
+            fi
+            previous_screen=$screen
+        done
+    done
+
+    eval $xrandr_cmd
+    exit 0
+}
 
 function _check_screen_variables() {
     [[ -n "$PRIMARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && local first_screen_ok=0
@@ -70,9 +116,10 @@ function identify() {
 # This function returns ${XRES}x${YRES}+${XPOS}+${YPOS}
 function _res() {
     if [[ $1 -ge ${#SCREENS[@]} ]]; then
+        echo lol
         exit 1
     fi
-    xrandr | grep ${SCREENS[$1]} | sed -n 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/p' | sed 's/x/ /g;s/+/ /g'
+    xrandr | grep ${SCREENS[$1]} | sed -e 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/' -e 's/x/ /g;s/+/ /g'
 }
 
 function resolution() {
@@ -196,7 +243,7 @@ shift $(($OPTIND - 1))
 [[ -z "$DISPLAY" ]] && export DISPLAY=:0
 [[ -z "$XAUTHORITY" ]] && export XAUTHORITY=$HOME/.Xauthority
 
-SCREENS=($(xrandr | grep ' connected' | awk '{ print $1 }' | tr '\n' ' ' ))
+SCREENS=($(xrandr | sed -ne 's/\(.*\) connected.*/\1/p' | tr '\n' ' '))
 
 _check_screen_variables || _guess_screens
 _save_conf
@@ -229,7 +276,7 @@ case "$1" in
     identify|i)
         identify
         ;;
-    res|r)
+    res|resolution)
         action=r
         ;;
     height|h)
@@ -240,6 +287,13 @@ case "$1" in
         ;;
     vertical|v)
         action=v
+        ;;
+    help|h)
+        help
+        ;;
+    *.conf)
+        parse_config $1
+        exit 0
         ;;
     *)
         auto
