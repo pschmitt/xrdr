@@ -31,33 +31,40 @@ function parse_config() {
 
     [[ $desired_screens -gt ${#SCREENS[@]} ]] && { echo "There aren't that many screens attached"; exit 1; }
 
-    local config_row _screen screen screen_index xrandr_cmd="xrandr --output" previous_screen
+    local config_row config_row_index=0 _screen screen screen_index xrandr_cmd="xrandr --output" previous_screen
     for config_row in $(seq ${#config[@]}); do
         eval "row_content=(\${config_$config_row[*]})"
+        let config_row_index++
         for _screen in "${row_content[@]}"; do
-            echo SCREEN: $_screen
             screen_index=$(sed 's/[^0-9]*//g' <<< "$_screen")
             screen_attributes=$(sed 's/[0-9]*//g' <<< "$_screen")
             screen=${SCREENS[$(( $screen_index - 1 ))]}
             xrandr_cmd="$xrandr_cmd $screen --auto"
             case $screen_attributes in
-                r)  xrandr_cmd="${xrandr_cmd} --rotate right"    ;;
-                l)  xrandr_cmd="${xrandr_cmd} --rotate left"     ;;
-                i)  xrandr_cmd="${xrandr_cmd} --rotate inverted" ;;
-                n)  xrandr_cmd="${xrandr_cmd} --rotate normal"   ;;
-                \*) xrandr_cmd="$xrandr_cmd --primary"           ;;
+                r)  xrandr_cmd="$xrandr_cmd --rotate right"    ;;
+                l)  xrandr_cmd="$xrandr_cmd --rotate left"     ;;
+                i)  xrandr_cmd="$xrandr_cmd --rotate inverted" ;;
+                n)  xrandr_cmd="$xrandr_cmd --rotate normal"   ;;
+                \*) xrandr_cmd="$xrandr_cmd --primary"         ;;
             esac
-            if [[ $_screen != ${row_content[0]} ]]; then
-                xrandr_cmd="${xrandr_cmd} --right-of $previous_screen"
+            if [[ $_screen == ${row_content[0]} ]]; then
+                if [[ $config_row_index -ne 1 ]]; then
+                    xrandr_cmd="$xrandr_cmd --below $first_screen"
+                fi
+                first_screen=$screen
+            else
+                xrandr_cmd="$xrandr_cmd --right-of $previous_screen"
             fi
-            if [[ $_screen != ${row_content[${#row_content[@]} - 1]} ]]; then
-                xrandr_cmd="${xrandr_cmd} --output"
+            if [[ $_screen != ${row_content[${#row_content[@]} - 1]} \
+               || $config_row_index -lt ${#config[@]} ]]; then
+                xrandr_cmd="$xrandr_cmd --output"
+                previous_screen=$screen
             fi
-            previous_screen=$screen
         done
     done
 
-    eval $xrandr_cmd
+    disconnect
+    $xrandr_cmd
     exit 0
 }
 
