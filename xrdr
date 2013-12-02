@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.3.0
+# Version: 2.5.0
 # Dependencies: xrandr awk sed dzen2
 
 CONFIG_FILE='/etc/xrdr.conf'
@@ -88,13 +88,6 @@ function parse_config() {
     exit 0
 }
 
-function _get_index() {
-    local value=$1
-    shift
-    local array=( $* )
-    
-}
-
 function _get_topleft_screen() {
     _get_screen_at_pos 0 0
 }
@@ -103,19 +96,11 @@ function _get_screen_at_pos() {
     local x_pos=$1 y_pos=$2
     for screen in ${!SCREENS[@]}; do
         read _ _ x y <<< $(_res $screen)
-        [[ $x == $x_pos ]] && [[ $y == $y_pos ]] && {
+       [[ $x == $x_pos ]] && [[ $y == $y_pos ]] && {
             echo $screen 
             return
         }
     done
-}
-
-function _get_right_screen() {
-    echo todo
-}
-
-function _get_above_screen() {
-    echo todo
 }
 
 function _get_config_size() {
@@ -132,40 +117,37 @@ function _get_config_size() {
     echo "$rows $cols"
 }
 
-function write_layout() {
-    [[ -n $VERBOSE ]] && echo "Generating layout file"
-    # local x_pos y_pos
-    # for screen in ${!SCREENS[@]}; do
-    #     #_res $screen
-    #     read _ _ x_pos y_pos <<< $(_res $screen)
-    #     read o <<< $(_orient $screen) 
-    #     echo "$(( $screen + 1 )) (${SCREENS[$screen]}): xpos: $x_pos ypos: $y_pos orient: $o"
-    # done
-    local first_screen=$(_get_topleft_screen)
-    local xres yres xpos ypos
-    read xres yres xpos ypos <<< $(_res $first_screen)
-    echo "FIRST: $(( first_screen + 1)) $(_orient $first_screen) ($xres*$yres $xpos - $ypos)"
-    local second_screen=$(_get_screen_at_pos $(( $xres + $xpos )) 0)
-    read xres yres xpos ypos <<< $(_res $second_screen)
-    echo "SECOND: $(( $second_screen + 1 )) $(_orient $second_screen) ($xres*$yres $xpos - $ypos)"
-    local third_screen=$(_get_screen_at_pos $(( $xpos + $xres )) 0)
-    read xres yres xpos ypos <<< $(_res $third_screen)
-    echo "THIRD: $(( $third_screen + 1 )) $(_orient $third_screen) ($xres*$yres $xpos - $ypos)"
-
-    echo -e "\n---\n"
-    
-    local first_screen=$(_get_topleft_screen)
-    local orient=$(_orient $first_screen)
-    read xres yres xpos ypos <<< $(_res $first_screen)
-    local layout="${first_screen}${orient} | "
-    local rows cols
-    read rows cols <<< $(_get_config_size) 
-    for (( r = 1; r < $rows; r++)); do
-        _res $r 
+function _get_hightest_res() {
+    local screen max_xres=0 max_yres=0
+    for screen in ${!SCREENS[@]}; do
+        read xres yres _ _ <<< $(_res $screen)
     done
+}
 
-    echo -e "\n---\n"
-    echo "LAYOUT: $layout"
+function print_layout() {
+    [[ -n $VERBOSE ]] && echo "Printing layout to stdout"
+    
+    local rows cols r c
+    read rows cols <<< $(_get_config_size) 
+    for (( c = 1; c <= $cols; c++)); do
+        local s=$(_get_topleft_screen) o=$(_orient $s)
+        local layout="$(( $s + 1 ))${o} "
+        local xres yres xpos ypos
+        read xres yres xpos ypos <<< $(_res $s)
+        for (( r = 1; r < $rows; r++)); do
+            read xres yres xpos ypos <<< $(_res $s)
+            s=$(_get_screen_at_pos $(( $xres + $xpos)) $ypos)
+            o=$(_orient $s)
+            layout="$layout | $(( $s + 1 ))$o"
+        done
+        [[ $c != $cols ]] && {
+            layout="$layout\n"
+            xres=0
+            yres=1080
+            s=$(_get_screen_at_pos $xres $yres)
+        }
+    done
+    echo -e $layout
 }
 
 function _check_screen_variables() {
@@ -349,7 +331,7 @@ function hook() {
     [[ -n $HOOK ]] && sh $HOOK
 }
 
-while getopts 'd:x:' opt ; do
+while getopts 'd:x:vr' opt ; do
     case $opt in
         d)
             export DISPLAY="$OPTARG"
@@ -430,8 +412,8 @@ case "$1" in
         usage $(basename $0)
         exit 0
         ;;
-    w|write-layout)
-        write_layout
+    l|layout)
+        print_layout
         exit 0
         ;; 
     *)
