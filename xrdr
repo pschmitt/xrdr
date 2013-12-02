@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.2.0
+# Version: 2.3.0
 # Dependencies: xrandr awk sed dzen2
 
 CONFIG_FILE='/etc/xrdr.conf'
@@ -15,7 +15,18 @@ elif [[ -r $HOOK_FILE ]]; then
     HOOK=$HOOK_FILE
 fi
 
+function usage() {
+    echo "Usage: $1 [extend|copy|primary|secondary|tertiary] LAYOUT_FILE"
+    echo "extend: Extend displays (3 displays max)"
+    echo "copy: Copy output (2 displays max)"
+    echo "primary: Disable all except primary display"
+    echo "secondary: Disable all except second display"
+    echo "tertiary: Disable all except third display"
+    echo "LAYOUT_FILE: Layout file"
+}
+
 function parse_config() {
+    [[ -n $VERBOSE ]] && echo "Applying layout from $1"
     [[ -r $1 ]] || { echo "File not readable"; exit 1; }
 
     local valid_config="$(sed '/^#\|^$/d;s/|//g;s/#.*//' $1)"
@@ -63,8 +74,11 @@ function parse_config() {
         done
     done
 
-    disconnect
-    $xrandr_cmd
+    [[ -n $VERBOSE ]] && echo $xrandr_cmd
+    [[ -z $DRY_RUN ]] && {
+        disconnect
+        $xrandr_cmd
+    } || echo $xrandr_cmd
     exit 0
 }
 
@@ -150,10 +164,12 @@ function is_vertical() {
 }
 
 function _save_conf() {
+    [[ -n $VERBOSE ]] && echo "Writing config file"
     mkdir -p $(dirname $USER_CONFIG_FILE)
     echo 'PRIMARY_SCREEN="'$PRIMARY_SCREEN'"' > $USER_CONFIG_FILE
     echo 'SECONDARY_SCREEN="'$SECONDARY_SCREEN'"' >> $USER_CONFIG_FILE
     echo 'TERTIARY_SCREEN="'$TERTIARY_SCREEN'"' >> $USER_CONFIG_FILE
+    [[ -n $VERBOSE ]] && cat $USER_CONFIG_FILE
 }
 
 function copy() {
@@ -228,11 +244,17 @@ function hook() {
 
 while getopts 'd:x:' opt ; do
     case $opt in
-         d)
+        d)
             export DISPLAY="$OPTARG"
             ;;
         x)
             export XAUTHORITY="$OPTARG"
+            ;;
+        v)
+            VERBOSE=1
+            ;;
+        r)
+            DRY_RUN=1
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -254,8 +276,10 @@ SCREENS=($(xrandr | sed -ne 's/\(.*\) connected.*/\1/p' | tr '\n' ' '))
 
 _check_screen_variables || _guess_screens
 _save_conf
-
 case "$1" in
+    auto|a)
+        action=auto
+        ;;
     count|c)
         count
         ;;
@@ -296,16 +320,16 @@ case "$1" in
         action=v
         ;;
     help|h)
-        help
-        ;;
-    *.conf)
-        parse_config $1
+        usage $(basename $0)
         exit 0
         ;;
     *)
-        auto
+        parse_config $1
+        exit 0
         ;;
 esac
+
+[[ $# -eq 0 ]] && action=auto
 
 [[ -n $action ]] && {
     [[ -n $2 ]] && {
@@ -317,6 +341,7 @@ esac
         }
     }
     case $action in
+        auto) auto ;;
         rot)
         _check_rotation $3 && {
             rotate $d $3
