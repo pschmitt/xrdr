@@ -88,6 +88,86 @@ function parse_config() {
     exit 0
 }
 
+function _get_index() {
+    local value=$1
+    shift
+    local array=( $* )
+    
+}
+
+function _get_topleft_screen() {
+    _get_screen_at_pos 0 0
+}
+
+function _get_screen_at_pos() {
+    local x_pos=$1 y_pos=$2
+    for screen in ${!SCREENS[@]}; do
+        read _ _ x y <<< $(_res $screen)
+        [[ $x == $x_pos ]] && [[ $y == $y_pos ]] && {
+            echo $screen 
+            return
+        }
+    done
+}
+
+function _get_right_screen() {
+    echo todo
+}
+
+function _get_above_screen() {
+    echo todo
+}
+
+function _get_config_size() {
+    local rows cols
+    local xpos ypos
+    for screen in ${!SCREENS[@]}; do
+        read _ _ xpos ypos <<< $(_res $screen)
+        rows="$rows\n$xpos"
+        cols="$cols\n$ypos"
+    done
+    
+    cols=$(( $(echo -e "$cols" | sort -u | wc -l) - 1))
+    rows=$(( $(echo -e "$rows" | sort -u | wc -l) - 1))
+    echo "$rows $cols"
+}
+
+function write_layout() {
+    [[ -n $VERBOSE ]] && echo "Generating layout file"
+    # local x_pos y_pos
+    # for screen in ${!SCREENS[@]}; do
+    #     #_res $screen
+    #     read _ _ x_pos y_pos <<< $(_res $screen)
+    #     read o <<< $(_orient $screen) 
+    #     echo "$(( $screen + 1 )) (${SCREENS[$screen]}): xpos: $x_pos ypos: $y_pos orient: $o"
+    # done
+    local first_screen=$(_get_topleft_screen)
+    local xres yres xpos ypos
+    read xres yres xpos ypos <<< $(_res $first_screen)
+    echo "FIRST: $(( first_screen + 1)) $(_orient $first_screen) ($xres*$yres $xpos - $ypos)"
+    local second_screen=$(_get_screen_at_pos $(( $xres + $xpos )) 0)
+    read xres yres xpos ypos <<< $(_res $second_screen)
+    echo "SECOND: $(( $second_screen + 1 )) $(_orient $second_screen) ($xres*$yres $xpos - $ypos)"
+    local third_screen=$(_get_screen_at_pos $(( $xpos + $xres )) 0)
+    read xres yres xpos ypos <<< $(_res $third_screen)
+    echo "THIRD: $(( $third_screen + 1 )) $(_orient $third_screen) ($xres*$yres $xpos - $ypos)"
+
+    echo -e "\n---\n"
+    
+    local first_screen=$(_get_topleft_screen)
+    local orient=$(_orient $first_screen)
+    read xres yres xpos ypos <<< $(_res $first_screen)
+    local layout="${first_screen}${orient} | "
+    local rows cols
+    read rows cols <<< $(_get_config_size) 
+    for (( r = 1; r < $rows; r++)); do
+        _res $r 
+    done
+
+    echo -e "\n---\n"
+    echo "LAYOUT: $layout"
+}
+
 function _check_screen_variables() {
     [[ -n "$PRIMARY_SCREEN" ]] && \
         [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && \
@@ -150,10 +230,9 @@ function identify() {
     exit 0
 }
 
-# This function returns ${XRES}x${YRES}+${XPOS}+${YPOS}
+# This function returns ${XRES} ${YRES} ${XPOS} ${YPOS}
 function _res() {
     if [[ $1 -ge ${#SCREENS[@]} ]]; then
-        echo lol
         exit 1
     fi
     xrandr | grep ${SCREENS[$1]} \
@@ -172,6 +251,17 @@ function width() {
 
 function height() {
     _res $1 | awk '{ print $2 }'
+}
+
+function _orient() {
+    local o=$(xrandr | grep ${SCREENS[$1]} | awk '{ print $4 }')
+    case $o in
+        # normal)   echo n ;;
+        left)     echo l ;;
+        right)    echo r ;;
+        inverted) echo i ;;
+        *)        echo   ;;
+    esac 
 }
 
 function is_vertical() {
@@ -340,6 +430,10 @@ case "$1" in
         usage $(basename $0)
         exit 0
         ;;
+    w|write-layout)
+        write_layout
+        exit 0
+        ;; 
     *)
         parse_config $1
         exit 0
