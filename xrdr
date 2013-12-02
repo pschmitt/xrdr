@@ -8,7 +8,9 @@ USER_CONFIG_FILE="$HOME/.config/xrdr/xrdr.conf"
 HOOK_FILE='/etc/conf.d/xrdr/xrdr.hook'
 USER_HOOK_FILE="$HOME/.config/xrdr/xrdr.hook"
 
-[[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || ( [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE )
+[[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || {
+     [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE 
+}
 if [[ -r $USER_HOOK_FILE ]]; then
     HOOK=$USER_HOOK_FILE
 elif [[ -r $HOOK_FILE ]]; then
@@ -40,9 +42,13 @@ function parse_config() {
         eval "local config[$row]=config_${row}"
     done
 
-    [[ $desired_screens -gt ${#SCREENS[@]} ]] && { echo "There aren't that many screens attached"; exit 1; }
+    [[ $desired_screens -gt ${#SCREENS[@]} ]] && { 
+        echo "There aren't that many screens attached"
+        exit 1
+    }
 
-    local config_row config_row_index=0 _screen screen screen_index xrandr_cmd="xrandr --output" previous_screen
+    local config_row config_row_index=0 
+    local _screen screen screen_index previous_screen xrandr_cmd="xrandr --output"
     for config_row in $(seq ${#config[@]}); do
         eval "row_content=(\${config_$config_row[*]})"
         let config_row_index++
@@ -83,15 +89,24 @@ function parse_config() {
 }
 
 function _check_screen_variables() {
-    [[ -n "$PRIMARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && local first_screen_ok=0
-    [[ -n "$SECONDARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$SECONDARY_SCREEN" ]] && local second_screen_ok=0
-    [[ -n "$TERTIARY_SCREEN" ]] && [[ "${SCREENS[@]}" =~ "$TERTIARY_SCREEN" ]] && local third_screen_ok=0
+    [[ -n "$PRIMARY_SCREEN" ]] && \
+        [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && \
+        local first_screen_ok=0
+    [[ -n "$SECONDARY_SCREEN" ]] && \
+        [[ "${SCREENS[@]}" =~ "$SECONDARY_SCREEN" ]] && \
+        local second_screen_ok=0
+    [[ -n "$TERTIARY_SCREEN" ]] && \
+        [[ "${SCREENS[@]}" =~ "$TERTIARY_SCREEN" ]] && \
+        local third_screen_ok=0
     case ${#SCREENS[@]} in
         3)
-            [[ -n "$first_screen_ok" ]] && [[ -n "$second_screen_ok" ]] && [[ -n "$third_screen_ok" ]]
+            [[ -n "$first_screen_ok" ]] && \
+                [[ -n "$second_screen_ok" ]] && \
+                [[ -n "$third_screen_ok" ]]
             ;;
         2)
-            [[ -n "$first_screen_ok" ]] && [[ -n "$second_screen_ok" ]]
+            [[ -n "$first_screen_ok" ]] && \
+                [[ -n "$second_screen_ok" ]]
             ;;
         1)
             [[ -n "$first_screen_ok" ]]
@@ -129,7 +144,8 @@ function identify() {
     for screen in ${!SCREENS[@]}; do
         screen_num=$(( $screen + 1 ))
         read x_res y_res _ _ <<< $(_res $screen)
-        echo "Screen $screen_num (${SCREENS[$screen]}) - ${x_res}x${y_res}" | dzen2 -p 2 -xs $screen_num -bg red -w $x_res -h $y_res
+        echo "Screen $screen_num (${SCREENS[$screen]}) - ${x_res}x${y_res}" \
+            | dzen2 -p 2 -xs $screen_num -bg red -w $x_res -h $y_res
     done
     exit 0
 }
@@ -140,7 +156,8 @@ function _res() {
         echo lol
         exit 1
     fi
-    xrandr | grep ${SCREENS[$1]} | sed -e 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/' -e 's/x/ /g;s/+/ /g'
+    xrandr | grep ${SCREENS[$1]} \
+           | sed -e 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/' -e 's/x/ /g;s/+/ /g'
 }
 
 function resolution() {
