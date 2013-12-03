@@ -56,3 +56,10 @@ PRIMARY_SCREEN="DFP1"
 SECONDARY_SCREEN="DFP5"
 TERTIARY_SCREEN="DFP6"
 ```
+
+As of version 2.3.0 instead of using the explicit command line options you can write a layout config file. Take a look at the sample in the repo. Mine looks like this:
+```
+2 | 1* | 3r
+```
+
+Multiline layouts *should* work too, but I didn't test it that much as I don't use it myself.
