@@ -68,6 +68,6 @@ As of version 2.5.0 instead of using the explicit command line options you can w
 2 | 1* | 3r
 ```
 
-This will place screen #1 in between screen #2 and #3 and set it as the primary display. Display #3 will be rotated 09° (right).
+This will place screen #1 in between screen #2 and #3 and set it as the primary display. Display #3 will be rotated 90° (right).
 
 Multiline layouts *should* work too, but I didn't test it that much as I don't use it myself.
