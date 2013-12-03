@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.5.0
+# Version: 2.5.1
 # Dependencies: xrandr awk sed dzen2
 
 CONFIG_FILE='/etc/xrdr.conf'
@@ -18,12 +18,13 @@ elif [[ -r $HOOK_FILE ]]; then
 fi
 
 function usage() {
-    echo "Usage: $1 [extend|copy|primary|secondary|tertiary] LAYOUT_FILE"
+    echo "Usage: $1 [extend|copy|primary|secondary|tertiary|layout] LAYOUT_FILE"
     echo "extend: Extend displays (3 displays max)"
     echo "copy: Copy output (2 displays max)"
     echo "primary: Disable all except primary display"
     echo "secondary: Disable all except second display"
     echo "tertiary: Disable all except third display"
+    echo "layout: Print current layout to stdout"
     echo "LAYOUT_FILE: Layout file"
 }
 
@@ -34,6 +35,8 @@ function parse_config() {
     local valid_config="$(sed '/^#\|^$/d;s/|//g;s/#.*//' $1)"
     local rows=$(wc -l <<< "$valid_config")
     local row=0 row_content desired_screens=0
+    
+    [[ -n $VERBOSE ]] && echo -e "Layout to be applied: $valid_config"
 
     for row in $(seq $rows); do
         row_content=$(sed -n ${row}p <<< "$valid_config")
@@ -88,10 +91,6 @@ function parse_config() {
     exit 0
 }
 
-function _get_topleft_screen() {
-    _get_screen_at_pos 0 0
-}
-
 function _get_screen_at_pos() {
     local x_pos=$1 y_pos=$2
     for screen in ${!SCREENS[@]}; do
@@ -117,36 +116,67 @@ function _get_config_size() {
     echo "$rows $cols"
 }
 
-function _get_hightest_res() {
-    local screen max_xres=0 max_yres=0
+function _get_y_positions() {
+    local screen ypos rows
     for screen in ${!SCREENS[@]}; do
-        read xres yres _ _ <<< $(_res $screen)
+        read _ _ _ ypos <<< $(_res $screen)
+        [[ -n $rows ]] && rows="$rows\n$ypos" || rows="$ypos"
     done
+    echo -e "$rows" | sort -u | tr '\n' ' ' 
+}
+
+function _get_screens_per_row() { 
+    local screens=0
+    local rows=( $(_get_y_positions) )
+    local ypos
+
+    [[ "${rows[@]}" =~ $1 ]] || { echo "$1 not in ${rows[*]}" 2>&1; exit 1; }
+    for screen in ${!SCREENS[@]}; do
+        read _ _ _ ypos <<< $(_res $screen)
+        [[ $ypos -eq ${rows[$1]} ]] && let screens++ 
+    done
+    echo $screens
+}
+
+function _get_x_positions_in_row() {
+    local screen xpos ypos rows
+    for screen in ${!SCREENS[@]}; do
+        read _ _ xpos ypos <<< $(_res $screen)
+        [[ $ypos -eq $1 ]] && {
+            [[ -n $rows ]] && rows="$rows\n$xpos" || rows="$xpos"
+        }
+    done
+    echo -e "$rows" | sort -u | tr '\n' ' ' 
 }
 
 function print_layout() {
     [[ -n $VERBOSE ]] && echo "Printing layout to stdout"
     
-    local rows cols r c
-    read rows cols <<< $(_get_config_size) 
-    for (( c = 1; c <= $cols; c++)); do
-        local s=$(_get_topleft_screen) o=$(_orient $s)
-        local layout="$(( $s + 1 ))${o} "
-        local xres yres xpos ypos
-        read xres yres xpos ypos <<< $(_res $s)
-        for (( r = 1; r < $rows; r++)); do
-            read xres yres xpos ypos <<< $(_res $s)
-            s=$(_get_screen_at_pos $(( $xres + $xpos)) $ypos)
-            o=$(_orient $s)
-            layout="$layout | $(( $s + 1 ))$o"
+    local maxcols screens_per_row c r ypos_values xpos_values
+    local screen o layout tmp
+    read _ maxcols <<< $(_get_config_size)
+    ypos_values=( $(_get_y_positions) )
+    for (( c = 0; c < $maxcols; c++ )); do
+        screens_in_current_row=$(_get_screens_per_row $c)
+        xpos_values=( $(_get_x_positions_in_row ${ypos_values[$c]}) )
+        for (( r = 0; r < $screens_in_current_row; r++ )); do
+            read xres yres xpos ypos <<< $(_res $screen)
+            screen=$(_get_screen_at_pos ${xpos_values[$r]} ${ypos_values[$c]})
+            o=$(_orient $screen)
+            tmp="$(( $screen + 1))$o"
+            [[ -n $layout ]] && {
+                [[ $r -ne 0 ]] && {
+                    layout="${layout} | $tmp"
+                } || {
+                    layout="${layout}${tmp}"
+                }
+            } || {
+                layout="$tmp"
+            }
         done
-        [[ $c != $cols ]] && {
-            layout="$layout\n"
-            xres=0
-            yres=1080
-            s=$(_get_screen_at_pos $xres $yres)
-        }
-    done
+        [[ $c != $(( maxcols - 1 )) ]] && layout="$layout\n"
+    done 
+
     echo -e $layout
 }
 
@@ -218,7 +248,8 @@ function _res() {
         exit 1
     fi
     xrandr | grep ${SCREENS[$1]} \
-           | sed -e 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/' -e 's/x/ /g;s/+/ /g'
+           | sed -e 's/.* \([0-9]\+x[0-9]\++[0-9]\++[0-9]\+\) .*/\1/' \
+                 -e 's/x/ /g;s/+/ /g'
 }
 
 function resolution() {
@@ -416,6 +447,11 @@ case "$1" in
         print_layout
         exit 0
         ;; 
+    print)
+        _get_current_config
+        _print_current_config
+        exit 0
+        ;;
     *)
         parse_config $1
         exit 0
