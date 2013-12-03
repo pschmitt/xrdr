@@ -2,7 +2,7 @@
 
 ## Description
 
-Simple XRandR wrapper written in Bash. Supports up to 3 screens (for now).
+Simple XRandR wrapper written in Bash. Supports simple layout files and theoretically an infinite number of screens
 
 ## Dependencies
 
@@ -22,6 +22,7 @@ makepkg -si
 
 ```bash
 wget https://raw.github.com/pschmitt/xrdr/master/xrdr
+chmod +x xrdr
 ```
 
 ### Usage
@@ -35,6 +36,8 @@ wget https://raw.github.com/pschmitt/xrdr/master/xrdr
 * `xrdr tertiary`: Turn off all screens, except the third one
 * `xrdr count`: Output the number of currently connected screens
 * `xrdr vertical SCREENNUMBER`: **Return** 0 if said screen is in portrait mode, 0 otherwise
+* `xrdr layout`: Print current layout to stdout
+* `xrdr LAYOUT_FILE`: Apply layout from `LAYOUT_FILE`
 
 ### Hooks
 
@@ -57,9 +60,14 @@ SECONDARY_SCREEN="DFP5"
 TERTIARY_SCREEN="DFP6"
 ```
 
-As of version 2.3.0 instead of using the explicit command line options you can write a layout config file. Take a look at the sample in the repo. Mine looks like this:
+### Layouts
+
+As of version 2.5.0 instead of using the explicit command line options you can write a layout config file. Take a look at the [sample](layout.conf.sample) in the repo. Mine looks like this:
+
 ```
 2 | 1* | 3r
 ```
+
+This will place screen #1 in between screen #2 and #3 and set it as the primary display. Display #3 will be rotated 09° (right).
 
 Multiline layouts *should* work too, but I didn't test it that much as I don't use it myself.
