@@ -1,14 +1,15 @@
+# * -> Set primary display
 # |: Separator
+#
 # Orientations
 # r -> right
 # l -> left
-# n -> normal
+# n -> normal [default]
 # i -> inverted
 
 # My example
 2 | 1 | 3r
 
 # Bigger example with 6 screens
-# Note: As of version 2.2.0 only one row is supported
 # 4r | 5 | 6r
 # 1r | 2 | 3r
