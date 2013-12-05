@@ -17,7 +17,7 @@ elif [[ -r $HOOK_FILE ]]; then
     HOOK=$HOOK_FILE
 fi
 
-function usage() {
+usage() {
     echo "Usage: $1 [extend|copy|primary|secondary|tertiary|layout] LAYOUT_FILE"
     echo "extend: Extend displays (3 displays max)"
     echo "copy: Copy output (2 displays max)"
@@ -28,7 +28,7 @@ function usage() {
     echo "LAYOUT_FILE: Layout file"
 }
 
-function parse_config() {
+parse_config() {
     [[ -n $VERBOSE ]] && echo "Applying layout from $1"
     [[ -r $1 ]] || { echo "File not readable"; exit 1; }
 
@@ -91,7 +91,7 @@ function parse_config() {
     exit 0
 }
 
-function _get_screen_at_pos() {
+_get_screen_at_pos() {
     local x_pos=$1 y_pos=$2
     for screen in ${!SCREENS[@]}; do
         read _ _ x y <<< $(_res $screen)
@@ -102,7 +102,7 @@ function _get_screen_at_pos() {
     done
 }
 
-function _get_config_size() {
+_get_config_size() {
     local rows cols
     local xpos ypos
     for screen in ${!SCREENS[@]}; do
@@ -116,7 +116,7 @@ function _get_config_size() {
     echo "$rows $cols"
 }
 
-function _get_y_positions() {
+_get_y_positions() {
     local screen ypos rows
     for screen in ${!SCREENS[@]}; do
         read _ _ _ ypos <<< $(_res $screen)
@@ -125,7 +125,7 @@ function _get_y_positions() {
     echo -e "$rows" | sort -u | tr '\n' ' ' 
 }
 
-function _get_screens_per_row() { 
+_get_screens_per_row() { 
     local screens=0
     local rows=( $(_get_y_positions) )
     local ypos
@@ -138,7 +138,7 @@ function _get_screens_per_row() {
     echo $screens
 }
 
-function _get_x_positions_in_row() {
+_get_x_positions_in_row() {
     local screen xpos ypos rows
     for screen in ${!SCREENS[@]}; do
         read _ _ xpos ypos <<< $(_res $screen)
@@ -149,7 +149,7 @@ function _get_x_positions_in_row() {
     echo -e "$rows" | sort -u | tr '\n' ' ' 
 }
 
-function print_layout() {
+print_layout() {
     [[ -n $VERBOSE ]] && echo "Printing layout to stdout"
     
     local maxcols screens_per_row c r ypos_values xpos_values
@@ -180,7 +180,7 @@ function print_layout() {
     echo -e $layout
 }
 
-function _check_screen_variables() {
+_check_screen_variables() {
     [[ -n "$PRIMARY_SCREEN" ]] && \
         [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && \
         local first_screen_ok=0
@@ -206,11 +206,11 @@ function _check_screen_variables() {
     esac
 }
 
-function check_display_input() {
+check_display_input() {
     [[ $1 -ge ${#SCREENS[@]} ]] && exit 1 || return $(( $1 - 1 ))
 }
 
-function _check_rotation() {
+_check_rotation() {
     [[ $1 == "left" ]] \
     || \
     [[ $1 == "right" ]] \
@@ -220,18 +220,18 @@ function _check_rotation() {
     [[ $1 == "inverted" ]]
 }
 
-function _guess_screens() {
+_guess_screens() {
     PRIMARY_SCREEN=${SCREENS[0]}
     SECONDARY_SCREEN=${SCREENS[1]}
     TERTIARY_SCREEN=${SCREENS[2]}
 }
 
-function count() {
+count() {
     echo ${#SCREENS[@]}
     exit 0
 }
 
-function identify() {
+identify() {
     local x_res y_res screen screen_num
     for screen in ${!SCREENS[@]}; do
         screen_num=$(( $screen + 1 ))
@@ -243,7 +243,7 @@ function identify() {
 }
 
 # This function returns ${XRES} ${YRES} ${XPOS} ${YPOS}
-function _res() {
+_res() {
     if [[ $1 -ge ${#SCREENS[@]} ]]; then
         exit 1
     fi
@@ -252,21 +252,21 @@ function _res() {
                  -e 's/x/ /g;s/+/ /g'
 }
 
-function resolution() {
+resolution() {
     local x_res y_res
     read x_res y_res _ _ <<< $(_res $1)
     echo $x_res - $y_res
 }
 
-function width() {
+width() {
     _res $1 | awk '{ print $1 }'
 }
 
-function height() {
+height() {
     _res $1 | awk '{ print $2 }'
 }
 
-function _orient() {
+_orient() {
     local o=$(xrandr | grep ${SCREENS[$1]} | awk '{ print $4 }')
     case $o in
         # normal)   echo n ;;
@@ -277,13 +277,13 @@ function _orient() {
     esac 
 }
 
-function is_vertical() {
+is_vertical() {
     # TODO awk '{ print $4 }' will only work if $1 != primary screen
     local vert=$(xrandr | grep ${SCREENS[$1]} | awk '{ print $4}')
     exit $([[ $vert == "right" || $vert == "left" ]])
 }
 
-function _save_conf() {
+_save_conf() {
     [[ -n $VERBOSE ]] && echo "Writing config file"
     mkdir -p $(dirname $USER_CONFIG_FILE)
     echo 'PRIMARY_SCREEN="'$PRIMARY_SCREEN'"' > $USER_CONFIG_FILE
@@ -292,13 +292,13 @@ function _save_conf() {
     [[ -n $VERBOSE ]] && cat $USER_CONFIG_FILE
 }
 
-function copy() {
+copy() {
     disconnect
     xrandr --output $SECONDARY_SCREEN --auto \
            --output $PRIMARY_SCREEN --same-as $SECONDARY_SCREEN --primary
 }
 
-function extend() {
+extend() {
     disconnect
     case ${#SCREENS[@]} in
         2)
@@ -313,7 +313,7 @@ function extend() {
     esac
 }
 
-function primary_only() {
+primary_only() {
     disconnect
     case ${#SCREENS[@]} in
         3)
@@ -326,7 +326,7 @@ function primary_only() {
     xrandr --output $PRIMARY_SCREEN --auto --primary
 }
 
-function secondary_only() {
+secondary_only() {
     [[ -n "$SECONDARY_SCREEN" ]] || exit 1
     disconnect
     xrandr --output $PRIMARY_SCREEN --off \
@@ -334,7 +334,7 @@ function secondary_only() {
            --output $SECONDARY_SCREEN --auto --primary
 }
 
-function tertiary_only() {
+tertiary_only() {
     [[ -n "$TERTIARY_SCREEN" ]] || exit 1
     disconnect
     xrandr --output $PRIMARY_SCREEN --off \
@@ -342,23 +342,23 @@ function tertiary_only() {
            --output $TERTIARY_SCREEN --auto --primary
 }
 
-function rotate() {
+rotate() {
     xrandr --output ${SCREENS[$1]} --rotate $2
 }
 
-function disconnect() {
+disconnect() {
     xrandr --auto
 }
 
-function toggle() {
+toggle() {
     [[ ${#SCREENS[@]} -gt 1 ]] && primary_only || extend
 }
 
-function auto() {
+auto() {
     [[ ${#SCREENS[@]} -gt 1 ]] && extend || primary_only
 }
 
-function hook() {
+hook() {
     [[ -n $HOOK ]] && sh $HOOK
 }
 
