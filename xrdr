@@ -362,8 +362,12 @@ hook() {
     [[ -n $HOOK ]] && sh $HOOK
 }
 
-while getopts 'd:x:vr' opt ; do
+while getopts 'd:x:vrh' opt ; do
     case $opt in
+        h)
+            usage $(basename $0)
+            exit 0
+            ;;
         d)
             export DISPLAY="$OPTARG"
             ;;
