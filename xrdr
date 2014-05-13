@@ -9,7 +9,7 @@ HOOK_FILE='/etc/conf.d/xrdr/xrdr.hook'
 USER_HOOK_FILE="$HOME/.config/xrdr/xrdr.hook"
 
 [[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || {
-     [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE 
+     [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE
 }
 if [[ -r $USER_HOOK_FILE ]]; then
     HOOK=$USER_HOOK_FILE
@@ -35,7 +35,7 @@ parse_config() {
     local valid_config="$(sed '/^#\|^$/d;s/|//g;s/#.*//' $1)"
     local rows=$(wc -l <<< "$valid_config")
     local row=0 row_content desired_screens=0
-    
+
     [[ -n $VERBOSE ]] && echo -e "Layout to be applied: $valid_config"
 
     for row in $(seq $rows); do
@@ -45,12 +45,12 @@ parse_config() {
         eval "local config[$row]=config_${row}"
     done
 
-    [[ $desired_screens -gt ${#SCREENS[@]} ]] && { 
+    [[ $desired_screens -gt ${#SCREENS[@]} ]] && {
         echo "There aren't that many screens attached"
         exit 1
     }
 
-    local config_row config_row_index=0 
+    local config_row config_row_index=0
     local _screen screen screen_index previous_screen xrandr_cmd="xrandr --output"
     for config_row in $(seq ${#config[@]}); do
         eval "row_content=(\${config_$config_row[*]})"
@@ -96,7 +96,7 @@ _get_screen_at_pos() {
     for screen in ${!SCREENS[@]}; do
         read _ _ x y <<< $(_res $screen)
        [[ $x == $x_pos ]] && [[ $y == $y_pos ]] && {
-            echo $screen 
+            echo $screen
             return
         }
     done
@@ -110,7 +110,7 @@ _get_config_size() {
         rows="$rows\n$xpos"
         cols="$cols\n$ypos"
     done
-    
+
     cols=$(( $(echo -e "$cols" | sort -u | wc -l) - 1))
     rows=$(( $(echo -e "$rows" | sort -u | wc -l) - 1))
     echo "$rows $cols"
@@ -122,10 +122,10 @@ _get_y_positions() {
         read _ _ _ ypos <<< $(_res $screen)
         [[ -n $rows ]] && rows="$rows\n$ypos" || rows="$ypos"
     done
-    echo -e "$rows" | sort -u | tr '\n' ' ' 
+    echo -e "$rows" | sort -u | tr '\n' ' '
 }
 
-_get_screens_per_row() { 
+_get_screens_per_row() {
     local screens=0
     local rows=( $(_get_y_positions) )
     local ypos
@@ -133,7 +133,7 @@ _get_screens_per_row() {
     [[ "${rows[@]}" =~ $1 ]] || { echo "$1 not in ${rows[*]}" 2>&1; exit 1; }
     for screen in ${!SCREENS[@]}; do
         read _ _ _ ypos <<< $(_res $screen)
-        [[ $ypos -eq ${rows[$1]} ]] && let screens++ 
+        [[ $ypos -eq ${rows[$1]} ]] && let screens++
     done
     echo $screens
 }
@@ -146,12 +146,12 @@ _get_x_positions_in_row() {
             [[ -n $rows ]] && rows="$rows\n$xpos" || rows="$xpos"
         }
     done
-    echo -e "$rows" | sort -u | tr '\n' ' ' 
+    echo -e "$rows" | sort -u | tr '\n' ' '
 }
 
 print_layout() {
     [[ -n $VERBOSE ]] && echo "Printing layout to stdout"
-    
+
     local maxcols screens_per_row c r ypos_values xpos_values
     local screen o layout tmp
     read _ maxcols <<< $(_get_config_size)
@@ -175,7 +175,7 @@ print_layout() {
             }
         done
         [[ $c != $(( maxcols - 1 )) ]] && layout="$layout\n"
-    done 
+    done
 
     echo -e $layout
 }
@@ -274,7 +274,7 @@ _orient() {
         right)    echo r ;;
         inverted) echo i ;;
         *)        echo   ;;
-    esac 
+    esac
 }
 
 is_vertical() {
@@ -450,7 +450,7 @@ case "$1" in
     l|layout)
         print_layout
         exit 0
-        ;; 
+        ;;
     print)
         _get_current_config
         _print_current_config
