@@ -3,10 +3,11 @@
 # Version: 2.6.0
 # Dependencies: xrandr awk sed dzen2
 
+XRDR_CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr"
 CONFIG_FILE='/etc/xrdr.conf'
-USER_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr/xrdr.conf"
+USER_CONFIG_FILE="$XRDR_CONF_DIR/xrdr.conf"
 HOOK_FILE='/etc/conf.d/xrdr/xrdr.hook'
-USER_HOOK_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr/xrdr.hook"
+USER_HOOK_FILE="$XRDR_CONF_DIR/xrdr.hook"
 
 [[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || {
      [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE
