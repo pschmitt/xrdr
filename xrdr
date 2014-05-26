@@ -18,7 +18,8 @@ elif [[ -r $HOOK_FILE ]]; then
 fi
 
 usage() {
-    echo "Usage: $1 [extend|copy|primary|secondary|tertiary|layout] [rotate ANGLE DISPLAY] [LAYOUT_FILE]"
+    echo "Usage: $1 [extend|copy|primary|secondary|tertiary|layout]"
+    echo "            [rotate ANGLE DISPLAY] [LAYOUT_FILE]"
     echo "extend: Extend displays (3 displays max)"
     echo "copy: Copy output (2 displays max)"
     echo "primary: Disable all except primary display"
@@ -60,7 +61,6 @@ parse_config() {
         eval "row_content=(\${config_$config_row[*]})"
         let config_row_index++
         for _screen in "${row_content[@]}"; do
-            echo "SCrEEN " $_screen
             screen_index=$(sed 's/[^0-9]*//g' <<< "$_screen")
             screen_attributes=$(sed 's/[0-9]*//g' <<< "$_screen")
             screen=${SCREENS[$(( $screen_index - 1 ))]}
@@ -417,6 +417,7 @@ shift $(($OPTIND - 1))
 [[ -z "$XAUTHORITY" ]] && export XAUTHORITY=$HOME/.Xauthority
 
 SCREENS=($(xrandr | sed -ne 's/\(.*\) connected.*/\1/p' | tr '\n' ' '))
+SCREEN=('DP' 'DVI' 'HDMI')
 
 _check_screen_variables || _guess_screens
 _save_conf
@@ -512,3 +513,5 @@ esac
         v) is_vertical $d ;;
     esac
 } || hook
+
+# vim: set ft=bash et ts=4 sw=4 cc=80 : #

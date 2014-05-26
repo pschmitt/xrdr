@@ -8,7 +8,7 @@
 # i -> inverted
 
 # My example
-2 | 1 | 3r
+2 | 1* | 3r
 
 # Bigger example with 6 screens
 # 4r | 5 | 6r
