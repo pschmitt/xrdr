@@ -417,7 +417,7 @@ shift $(($OPTIND - 1))
 [[ -z "$DISPLAY" ]] && export DISPLAY=:0
 [[ -z "$XAUTHORITY" ]] && export XAUTHORITY=$HOME/.Xauthority
 
-SCREENS=($(xrandr | sed -ne 's/\(.*\) connected.*/\1/p' | tr '\n' ' '))
+SCREENS=($(xrandr | sed -ne 's/\(.\+\) connected.*/\1/p' | sort -u | tr '\n' ' '))
 
 _check_screen_variables || _guess_screens
 _save_conf
