@@ -44,8 +44,8 @@ chmod +x xrdr
 If you want to automatically execute a script after display adjustement, create `$HOME/.config/xrdr/xrdr.hook`. Here's mine:
 
 ```
-xmonad --restart 
-sleep 2 && nitrogen --restore 
+xmonad --restart
+sleep 2 && nitrogen --restore
 ```
 
 ### Configuration
@@ -75,7 +75,7 @@ This will place screen #1 in between screen #2 and #3 and set it as the primary 
                               |    |
  -----------    -----------   |    |
 | Display 2 |  | Display 1 |  | #3 |
- -----------    -----------   |    |    
+ -----------    -----------   |    |
                               |    |
                                ----
 ```
