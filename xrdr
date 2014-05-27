@@ -418,7 +418,6 @@ shift $(($OPTIND - 1))
 [[ -z "$XAUTHORITY" ]] && export XAUTHORITY=$HOME/.Xauthority
 
 SCREENS=($(xrandr | sed -ne 's/\(.*\) connected.*/\1/p' | tr '\n' ' '))
-SCREEN=('DP' 'DVI' 'HDMI')
 
 _check_screen_variables || _guess_screens
 _save_conf
