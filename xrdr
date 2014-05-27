@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.6.0
+# Version: 2.7.0
 # Dependencies: xrandr awk sed dzen2
 
 XRDR_CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr"
@@ -20,22 +20,21 @@ fi
 
 usage() {
     echo "Usage: $1 [extend|copy|primary|secondary|tertiary|layout]"
-    echo "            [rotate ANGLE DISPLAY] [LAYOUT_FILE]"
+    echo "            [rotate ANGLE DISPLAY]"
     echo "extend: Extend displays (3 displays max)"
     echo "copy: Copy output (2 displays max)"
     echo "primary: Disable all except primary display"
     echo "secondary: Disable all except second display"
     echo "tertiary: Disable all except third display"
     echo "rotate: Rotate a display (by default +90)"
-    echo "layout: Print current layout to stdout"
-    echo "LAYOUT_FILE: Layout file"
+    echo "layout [FILE]: Apply layout from file (or read from stdin)"
+    echo "print: Print current layout to stdout"
 }
 
 parse_config() {
     [[ -n $VERBOSE ]] && echo "Applying layout from $1"
-    [[ -r $1 ]] || { echo "File not readable"; exit 1; }
 
-    local valid_config="$(sed '/^#\|^$/d;s/|//g;s/#.*//' $1)"
+    local valid_config=$(sed '/^#\|^$/d;s/|\|;\|,/ /g;s/#.*//' <<< "$1")
     local config
     local rows=$(wc -l <<< "$valid_config")
     local row=0 row_content desired_screens=0
@@ -470,19 +469,16 @@ case "$1" in
         exit 0
         ;;
     l|layout)
-        print_layout
-        exit 0
+        action=l
+        shift
         ;;
     print)
-        _get_current_config
-        _print_current_config
+        print_layout
+        exit 0
         exit 0
         ;;
     *)
-        [[ $# -eq 0 ]] && action=auto || {
-            parse_config $1
-            exit 0
-        }
+        action=auto
         ;;
 esac
 
@@ -511,6 +507,16 @@ esac
         w) width $d       ;;
         h) height $d      ;;
         v) is_vertical $d ;;
+        l)
+            [[ $# -eq 0 ]] && {
+                echo "Reading layout from stdin"
+                read config
+            } || {
+                [[ -r $1 ]] || { echo "File not readable"; exit 1; }
+                config=$(cat $1)
+            }
+            parse_config "$config"
+        ;;
     esac
 } || hook
 
