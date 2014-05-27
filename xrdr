@@ -155,6 +155,8 @@ _get_x_positions_in_row() {
 }
 
 print_layout() {
+    # TODO Improve performance
+    # TODO Detect primary display
     [[ -n $VERBOSE ]] && echo "Printing layout to stdout"
 
     local maxcols screens_per_row c r ypos_values xpos_values
@@ -374,7 +376,6 @@ toggle() {
 }
 
 auto() {
-    echo "AUTO"
     [[ ${#SCREENS[@]} -gt 1 ]] && extend || primary_only
 }
 
