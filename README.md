@@ -36,8 +36,8 @@ chmod +x xrdr
 * `xrdr tertiary`: Turn off all screens, except the third one
 * `xrdr count`: Output the number of currently connected screens
 * `xrdr vertical SCREENNUMBER`: **Return** 0 if said screen is in portrait mode, 0 otherwise
-* `xrdr layout`: Print current layout to stdout
-* `xrdr LAYOUT_FILE`: Apply layout from `LAYOUT_FILE`
+* `xrdr print`: Print current layout to stdout
+* `xrdr layout [LAYOUT_FILE]`: Apply layout from `LAYOUT_FILE` (or read from stdin if no file is provided)
 
 ### Hooks
 
@@ -68,6 +68,8 @@ As of version 2.5.0 instead of using the explicit command line options you can w
 2 | 1* | 3r
 ```
 
+**NOTE:** Separators can be `,`, `;` or `|`
+
 This will place screen #1 in between screen #2 and #3 and set it as the primary display. Display #3 will be rotated 90° (right):
 
 ```
@@ -80,5 +82,4 @@ This will place screen #1 in between screen #2 and #3 and set it as the primary 
                                ----
 ```
 
-
-Multiline layouts *should* work too, but I didn't test it that much as I don't use it myself.
+**NOTE:** Multiline layouts *should* work too, but I didn't test it that much as I don't use it myself.
