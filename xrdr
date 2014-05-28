@@ -364,7 +364,7 @@ auto_rotate() {
 
 rotate() {
     xrandr --output $1 --rotate $2
-    hook $2
+    _hook $2
 }
 
 disconnect() {
@@ -379,7 +379,7 @@ auto() {
     [[ ${#SCREENS[@]} -gt 1 ]] && extend || primary_only
 }
 
-hook() {
+_hook() {
     [[ -r $HOOK ]] && . $HOOK "$*"
 }
 
@@ -518,6 +518,6 @@ esac
             parse_config "$config"
         ;;
     esac
-} || hook
+} || _hook
 
 # vim: set ft=sh et ts=4 sw=4 cc=80 : #
