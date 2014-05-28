@@ -476,7 +476,6 @@ case "$1" in
     print)
         print_layout
         exit 0
-        exit 0
         ;;
     *)
         action=auto
