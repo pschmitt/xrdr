@@ -1,17 +1,12 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.7.1
+# Version: 2.7.2
 # Dependencies: xrandr awk sed dzen2
 
 XRDR_CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr"
-CONFIG_FILE='/etc/xrdr.conf'
-USER_CONFIG_FILE="$XRDR_CONF_DIR/xrdr.conf"
 HOOK_FILE='/etc/conf.d/xrdr/xrdr.hook'
 USER_HOOK_FILE="$XRDR_CONF_DIR/xrdr.hook"
 
-[[ -r $USER_CONFIG_FILE ]] && . $USER_CONFIG_FILE || {
-     [[ -r $CONFIG_FILE ]] && . $CONFIG_FILE
-}
 if [[ -r $USER_HOOK_FILE ]]; then
     HOOK=$USER_HOOK_FILE
 elif [[ -r $HOOK_FILE ]]; then
@@ -31,6 +26,7 @@ usage() {
     echo "print: Print current layout to stdout"
 }
 
+# TODO Support rotation + primary display layouts ("1 2*r 3")
 parse_config() {
     [[ -n $VERBOSE ]] && echo "Applying layout from $1"
 
@@ -187,36 +183,6 @@ print_layout() {
     echo -e $layout
 }
 
-_check_screen_variables() {
-    [[ -n "$PRIMARY_SCREEN" ]] && \
-        [[ "${SCREENS[@]}" =~ "$PRIMARY_SCREEN" ]] && \
-        local first_screen_ok=0
-    [[ -n "$SECONDARY_SCREEN" ]] && \
-        [[ "${SCREENS[@]}" =~ "$SECONDARY_SCREEN" ]] && \
-        local second_screen_ok=0
-    [[ -n "$TERTIARY_SCREEN" ]] && \
-        [[ "${SCREENS[@]}" =~ "$TERTIARY_SCREEN" ]] && \
-        local third_screen_ok=0
-    case ${#SCREENS[@]} in
-        3)
-            [[ -n "$first_screen_ok" ]] && \
-                [[ -n "$second_screen_ok" ]] && \
-                [[ -n "$third_screen_ok" ]]
-            ;;
-        2)
-            [[ -n "$first_screen_ok" ]] && \
-                [[ -n "$second_screen_ok" ]]
-            ;;
-        1)
-            [[ -n "$first_screen_ok" ]]
-            ;;
-    esac
-}
-
-check_display_input() {
-    [[ $1 -ge ${#SCREENS[@]} ]] && exit 1 || return $(( $1 - 1 ))
-}
-
 _check_rotation() {
     [[ $1 == "left" ]] \
     || \
@@ -288,15 +254,6 @@ is_vertical() {
     # TODO awk '{ print $4 }' will only work if $1 != primary screen
     local vert=$(xrandr | grep ${SCREENS[$1]} | awk '{ print $4}')
     exit $([[ $vert == "right" || $vert == "left" ]])
-}
-
-_save_conf() {
-    [[ -n $VERBOSE ]] && echo "Writing config file"
-    mkdir -p $(dirname $USER_CONFIG_FILE)
-    echo 'PRIMARY_SCREEN="'$PRIMARY_SCREEN'"' > $USER_CONFIG_FILE
-    echo 'SECONDARY_SCREEN="'$SECONDARY_SCREEN'"' >> $USER_CONFIG_FILE
-    echo 'TERTIARY_SCREEN="'$TERTIARY_SCREEN'"' >> $USER_CONFIG_FILE
-    [[ -n $VERBOSE ]] && cat $USER_CONFIG_FILE
 }
 
 copy() {
@@ -427,9 +384,7 @@ shift $(($OPTIND - 1))
 } || {
     SCREENS=($(xrandr | sed -ne 's/\(.\+\) connected.*/\1/p' | tr '\n' ' '))
 }
-# _check_screen_variables || _guess_screens
 _guess_screens
-_save_conf
 
 case "$1" in
     auto|a)
