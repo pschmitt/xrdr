@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.7.0
+# Version: 2.7.1
 # Dependencies: xrandr awk sed dzen2
 
 XRDR_CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr"
@@ -380,26 +380,31 @@ auto() {
 }
 
 _hook() {
-    [[ -r $HOOK ]] && . $HOOK "$*"
+    [[ -r $HOOK ]] && . $HOOK "$*" || return 0
 }
 
-while getopts 'd:x:vrh' opt ; do
+while getopts 'd:hnsvx:' opt ; do
     case $opt in
+        d)
+            # FIXME is the export necessary?
+            export DISPLAY="$OPTARG"
+            ;;
         h)
             usage $(basename $0)
             exit 0
             ;;
-        d)
-            export DISPLAY="$OPTARG"
+        n)
+            DRY_RUN=1
             ;;
-        x)
-            export XAUTHORITY="$OPTARG"
+        s)
+            NOSORT=1
             ;;
         v)
             VERBOSE=1
             ;;
-        r)
-            DRY_RUN=1
+        x)
+            # FIXME is the export necessary?
+            export XAUTHORITY="$OPTARG"
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -417,9 +422,13 @@ shift $(($OPTIND - 1))
 [[ -z "$DISPLAY" ]] && export DISPLAY=:0
 [[ -z "$XAUTHORITY" ]] && export XAUTHORITY=$HOME/.Xauthority
 
-SCREENS=($(xrandr | sed -ne 's/\(.\+\) connected.*/\1/p' | sort -u | tr '\n' ' '))
-
-_check_screen_variables || _guess_screens
+[[ -z "$NOSORT" ]] && {
+    SCREENS=($(xrandr | sed -ne 's/\(.\+\) connected.*/\1/p' | sort -u | tr '\n' ' '))
+} || {
+    SCREENS=($(xrandr | sed -ne 's/\(.\+\) connected.*/\1/p' | tr '\n' ' '))
+}
+# _check_screen_variables || _guess_screens
+_guess_screens
 _save_conf
 
 case "$1" in
