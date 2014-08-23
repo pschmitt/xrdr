@@ -83,3 +83,15 @@ This will place screen #1 in between screen #2 and #3 and set it as the primary 
 ```
 
 **NOTE:** Multiline layouts *should* work too, but I didn't test it that much as I don't use it myself.
+
+#### Screen attributes
+
+| Attributes    | Effect                      |
+| :-----------: | ----------------------------|
+|      `*`      | Make screen the primary one |
+|      `x`      | Turn screen off             |
+|      `r`      | Rotate right                |
+|      `l`      | Rotate left                 |
+|      `i`      | Rotate "inverted"           |
+|      `n`      | Rotate "normal"             |
+
