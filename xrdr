@@ -66,6 +66,7 @@ parse_config() {
                 l)  xrandr_cmd="$xrandr_cmd --rotate left"     ;;
                 i)  xrandr_cmd="$xrandr_cmd --rotate inverted" ;;
                 n)  xrandr_cmd="$xrandr_cmd --rotate normal"   ;;
+                x)  xrandr_cmd="$xrandr_cmd --off"             ;;
                 \*) xrandr_cmd="$xrandr_cmd --primary"         ;;
             esac
             if [[ $_screen == ${row_content[0]} ]]; then
