@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Philipp Schmitt
-# Version: 2.7.2
+# Version: 2.7.3
 # Dependencies: xrandr awk sed dzen2
 
 XRDR_CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/xrdr"
